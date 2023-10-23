@@ -17,8 +17,10 @@ Output data is fitted to  16x2 (or 3) lcd panel.
 
  ### Requirements   
  Server timezone should match Finland/Helsinki   
- ``` sudo timedatectl set-timezone Europe/Helsinki
-timedatectl
+ ``` 
+ sudo timedatectl set-timezone Europe/Helsinki   
+ timedatectl
+ ```
     
 
 
