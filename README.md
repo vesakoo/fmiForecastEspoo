@@ -7,3 +7,18 @@ on Espoo/Finland -area and stores the data into compact format.
 Output data is fitted to  16x2 (or 3) lcd panel.
 * two first datarows are temp forecast table
 * third datarow is closest current temperature
+
+## Installation
+ * Download files
+ * run npm i 
+## Run
+ node index.js   
+ (optional) run with crontab once per hour
+
+ ### Requirements   
+ Server timezone should match Finland/Helsinki   
+ ``` sudo timedatectl set-timezone Europe/Helsinki
+timedatectl
+    
+
+
