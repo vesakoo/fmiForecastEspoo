@@ -1,0 +1,21 @@
+{
+  "name": "ilmatiteenlaitos",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@xmldom/xmldom": "^0.8.10",
+    "axios": "^1.5.1",
+    "fs": "^0.0.1-security",
+    "libxmljs": "^1.0.11",
+    "n": "^9.2.0",
+    "xml2js": "^0.6.2",
+    "xmlhttprequest": "^1.8.0",
+    "xpath": "^0.0.33"
+  }
+}
