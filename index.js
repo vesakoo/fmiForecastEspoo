@@ -51,7 +51,7 @@ axios.get(url)
       const fileContent=measures.filter((r,index)=>/*r.hours>7 && index <4*/ index>0).map((row)=>row.hours>10?` ${row.hours}|`:` 0${row.hours}|`)
         .concat('\n')
         .concat(measures
-          .filter((r,index)=>r.hours>7 && index <4)
+          .filter((r,index)=>/*r.hours>7 && index <4*/ index >0)
           .map((row)=>(
             row.temp.toString().length<3
             ?row.temp.toString().length<2

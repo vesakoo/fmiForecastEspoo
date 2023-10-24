@@ -16,7 +16,7 @@ Output data is fitted to  16x2 (or 3) lcd panel.
  (optional) run with crontab once per hour
 
  ### Requirements   
- Server timezone should match Finland/Helsinki   
+ Server timezone should match Europe/Helsinki   
  ``` 
  sudo timedatectl set-timezone Europe/Helsinki   
  timedatectl
