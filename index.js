@@ -40,8 +40,8 @@ const urlParams = {
     version: '2.0.0',
     request: 'getFeature',
     storedquery_id: 'fmi::forecast::edited::weather::scandinavia::point::timevaluepair', 
-    //latlon : '60.1836468,24.6440379',
-    place: 'Espoo',
+    latlon : '60.1836468,24.6440379',
+    //place: 'Espoo',
     parameters : 'Temperature,smartsymbol,smartsymboltext,windspeedms,WindDirection',
     lang : 'fi',
     starttime : utc,
@@ -73,36 +73,18 @@ axios.request(urlParams)
       //console.log('begin', new Date(begin),'end',new Date(end))
 
 //data model
-      /*const measures = xmlDoc
-        .find(
-          '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-Temperature"]/wml2:point/wml2:MeasurementTVP',
-          {
-            wml2: 'http://www.opengis.net/waterml/2.0',
-            gml: 'http://www.opengis.net/gml/3.2'
-          }
-        )
-        .map((element)=>{
-          const time = element.find(
-            './wml2:time'
-            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
-          )[0].text()
-          const val = element.find(
-            './wml2:value'
-            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
-            )[0].text()
-            //console.log('time:',time,'temp',val);
-            return {'time': time, 'hours': new Date(time).getHours(), 'temp':Math.round(val)}
-        } ).filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours) ) )
-      */
-      const smartText = xmlDoc.find(
+      /*const smartText = xmlDoc.find(
         '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-smartsymboltext"]/wml2:point/wml2:MeasurementTVP/wml2:value',
         {
           wml2: 'http://www.opengis.net/waterml/2.0',
           gml: 'http://www.opengis.net/gml/3.2'
         }
-      )[0].text()
+      )[0].text()*/
 
-      const measures = timeValParser(xmlDoc,'mts-1-1-Temperature','')
+      const smartTexts = timeValParser(xmlDoc,'mts-1-1-smartsymboltext')
+        .map(item=>({...item,'smartText': item.val}))
+
+      const measures = timeValParser(xmlDoc,'mts-1-1-Temperature' )
         .map(item =>(
           {
             ...item,
@@ -112,7 +94,7 @@ axios.request(urlParams)
 
       //symbols 107 and 157 are missing (night symbols)
       //replace with daysymbols
-      const smartIcon = timeValParser(xmlDoc,'mts-1-1-smartsymbol','')
+      const smartIcon = timeValParser(xmlDoc,'mts-1-1-smartsymbol')
         .map(item =>(
           {
             ...item,
@@ -120,19 +102,26 @@ axios.request(urlParams)
           }
         )) 
 
-        const windMeasures =timeValParser(xmlDoc,'mts-1-1-windspeedms','')
+        const windMeasures =timeValParser(xmlDoc,'mts-1-1-windspeedms')
         .map(item =>({...item, 'wind': item.val}))
 
-        const windDirVals =timeValParser(xmlDoc,'mts-1-1-WindDirection','')
-        .map(item =>({...item, 'windDir': item.val}))
+        const windDirVals =timeValParser(xmlDoc,'mts-1-1-WindDirection')
+        .map(item =>({...item, 'windDirection': item.val}))
          
         
         const allMeasures = measures.map((measure) => {
           const icon = smartIcon.find((ico)=> (ico.hours===measure.hours))
           const wind = windMeasures.find((wind) =>(wind.hours === measure.hours ))
           const windDir = windDirVals.find((wind) =>(wind.hours === measure.hours ))
+          const smartText = smartTexts.find((text) =>text.hours ===measure.hours)
 
-          return {...measure, symbol: icon.symbol, wind: wind.wind, windDir: windDir.windDirection }
+          return {
+            ...measure, 
+            symbol: icon.symbol,
+            smartText: smartText.val, 
+            wind: wind.wind, 
+            windDir: windDir.windDirection 
+          }
         })
 
 console.log('data', allMeasures)
@@ -156,7 +145,7 @@ console.log('data', allMeasures)
             :`${row.temp}|`)))
 
         .concat(`\nUlko: ${measures[0].temp}'C`)
-        .concat(`\n${smartText}`)
+        //.concat(`\n${smartTexts[0].val}`)
         .join('');
       console.log(fileContent); 
 
@@ -189,20 +178,20 @@ console.log('data', allMeasures)
 
   const pageStart = 
     '<html>\n\t<body>\n\t\t<table>\n \
-    <tr><th>Hour</th><th>Temp</th><th>Wind m/s</th><th>weather</th></tr>';
+    <tr><th>Hour</th><th>Temp</th><th>Wind m/s</th><th>weather</th></tr>\n';
   const getRow = ((row)=>{
     return `\t\t\t<tr>\
-      <td>${row.hours}:00:00</td> \
-      <td>${row.temp} 'C</td> \
+      <td>${row.hours}:00</td> \
+      <td>${row.temp} &deg;C</td> \
       <td>${row.wind} ${row.windDir}&deg; </td> \
-      <td><img src='./SmartSymbol/light/${row.symbol}.svg'/></td>\
+      <td><img src='./SmartSymbol/light/${row.symbol}.svg'/> ${row.smartText}</td>\
     </tr>\n`
   })
 
   const pageEdn = '\t\t</table>\n\t</body>\n</html>'
 
 
-  const timeValParser = ((xmlDoc, gmlId, valKey)=>{
+  const timeValParser = ((xmlDoc, gmlId)=>{
      return xmlDoc
     .find(
       `//wml2:MeasurementTimeseries[@gml:id="${gmlId}"]/wml2:point/wml2:MeasurementTVP`,
@@ -233,3 +222,4 @@ console.log('data', allMeasures)
 
 
   })
+
