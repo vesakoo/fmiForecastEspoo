@@ -21,6 +21,13 @@ Output data is fitted to  16x2 (or 3) lcd panel.
  sudo timedatectl set-timezone Europe/Helsinki   
  timedatectl
  ```
+
+ ### Check also:  
+ https://www.ilmatieteenlaitos.fi/latauspalvelun-pikaohje
+
+ For symbols, link svg symbols from here to your webfolder:   
+ https://github.com/fmidev/opendata-resources/tree/master/symbols
+ 
     
 
 

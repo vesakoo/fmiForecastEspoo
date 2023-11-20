@@ -18,10 +18,21 @@ https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedq
 
 ###
 GET https://opendata.fmi.fi/wfs
-  ?service=WFS&version=2.0.0
+  ?service=WFS
+  &version=2.0.0
   &request=getFeature
   &storedquery_id=fmi::forecast::edited::weather::scandinavia::point::timevaluepair
-  &parameters=Temperature&place=Espoo
+  &parameters=Temperature,smartsymbol,smartsymboltext,windspeedms
+  &place=Espoo
   &starttime={{$datetime iso8601}}
   &endtime={{$datetime iso8601 1 d}}
   &timestep=60
+
+###    
+
+https://opendata.fmi.fi/timeseries
+    ?latlon=60.1836468,24.6440379
+    &param=time,temperature,windspeedms,smartsymbol,smartsymboltext
+    &lang=fi&starttime=2023-11-19T14:00:00Z
+    &endtime=2023-11-20T14:00:00Z
+    &timestep=60

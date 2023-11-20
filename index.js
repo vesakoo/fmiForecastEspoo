@@ -14,14 +14,40 @@ const endUtc = new Date(new Date(now.getTime()+25*60*60*1000)).toJSON();
 //console.log('utc', utc,' end ', endUtc);
 const forecastDisplayHours= [8,12,18,21];  
 const forecastFile = './forecast.txt'
+const forecastHtml = './forecast.html'
 
-const url = `https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::edited::weather::scandinavia::point::timevaluepair&parameters=Temperature&place=Espoo&starttime=${utc}&endtime=${endUtc}&timestep=60`;
-console.log('url', url);
+//const url = `https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::edited::weather::scandinavia::point::timevaluepair&parameters=Temperature&place=Espoo&starttime=${utc}&endtime=${endUtc}&timestep=60`;
+//const url = `https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::edited::weather::scandinavia::point::timevaluepair&parameters=Temperature,smartsymboltext&place=Espoo&starttime=${utc}&endtime=${endUtc}&timestep=60`;
+//console.log('url', url);
+
+const urlParams = {
+  baseURL: 'https://opendata.fmi.fi',
+  method: "GET",
+  url: '/wfs',
+  params: {
+    service: 'WFS',
+    version: '2.0.0',
+    request: 'getFeature',
+    storedquery_id: 'fmi::forecast::edited::weather::scandinavia::point::timevaluepair', 
+    //latlon : '60.1836468,24.6440379',
+    place: 'Espoo',
+    parameters : 'Temperature,smartsymbol,smartsymboltext,windspeedms',
+    lang : 'fi',
+    starttime : utc,
+    endtime : endUtc,
+    timestep : 60
+  },
+}
+
 
 //*data source
-axios.get(url)
+axios.request(urlParams)
+//axios.get(url)
   .then((response) => {
+    //console.log('here!!',request.url)
+
     const xmlData = response.data;
+    //console.log(xmlData)
     const xpathTemp = "//gml:doubleOrNilReasonTupleList"
     const xmlDoc = libxml.parseXmlAsync(xmlData)
     .then((xmlDoc) => {
@@ -38,8 +64,11 @@ axios.get(url)
 //*data model
       const measures = xmlDoc
         .find(
-          '//wml2:MeasurementTVP',
-          {wml2: 'http://www.opengis.net/waterml/2.0'}
+          '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-Temperature"]/wml2:point/wml2:MeasurementTVP',
+          {
+            wml2: 'http://www.opengis.net/waterml/2.0',
+            gml: 'http://www.opengis.net/gml/3.2'
+          }
         )
         .map((element)=>{
           const time = element.find(
@@ -53,7 +82,49 @@ axios.get(url)
             //console.log('time:',time,'temp',val);
             return {'time': time, 'hours': new Date(time).getHours(), 'temp':Math.round(val)}
         } ).filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)/*elem.hours===8||elem.hours===12||elem.hours===18||elem.hours===21*/) )
-      console.log('measures',measures);
+      //console.log('measures',measures);
+      const smartText = xmlDoc.find(
+        '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-smartsymboltext"]/wml2:point/wml2:MeasurementTVP/wml2:value',
+        {
+          wml2: 'http://www.opengis.net/waterml/2.0',
+          gml: 'http://www.opengis.net/gml/3.2'
+        }
+      )[0].text()
+
+      const smartIcon = xmlDoc
+        .find(
+          '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-smartsymbol"]/wml2:point/wml2:MeasurementTVP',
+          {
+            wml2: 'http://www.opengis.net/waterml/2.0',
+            gml: 'http://www.opengis.net/gml/3.2'
+          }
+        )
+        .map((element)=>{
+          const time = element.find(
+            './wml2:time'
+            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
+          )[0].text()
+          const val = element.find(
+            './wml2:value'
+            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
+            )[0].text()
+            //symbols 107 and 157 are missing (night symbols)
+            //replace with daysymbols
+            return {
+              'time': time, 
+              'hours': new Date(time).getHours(), 
+              'symbol': Number(val)===107||Number(val)===157?Number(val)-100:val
+            }
+        } )
+        .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)))
+
+        const allMeasures = measures.map((measure) => {
+          const icon = smartIcon.find((ico)=> (ico.hours===measure.hours))
+          return {...measure, symbol: icon.symbol }
+        })
+
+        
+      
 
 //*data render
       const fileContent = measures
@@ -71,6 +142,7 @@ axios.get(url)
             :`${row.temp}|`)))
 
         .concat(`\nUlko: ${measures[0].temp}'C`)
+        .concat(`\n${smartText}`)
         .join('');
       console.log(fileContent); 
 
@@ -79,8 +151,30 @@ axios.get(url)
       } catch (err) {
         console.error(err);
       }
+      
+      const htmlFileContent = pageStart.concat( 
+        allMeasures.map((measure)=>{
+          return getRow(measure)
+        }).join('')
+      )
+      .concat(pageEdn)
+     
+      try{
+        fs.writeFileSync(forecastHtml,htmlFileContent)      
+      } catch (err) {
+        console.error(err);
+      }
+
     });
   })  
   .catch((error) => {
     console.error('HTTP-pyyntö epäonnistui:', error);
   });
+
+
+
+  const pageStart = '<html>\n\t<body>\n\t\t<table>\n<tr><th>Hour</th><th>temp</th><th>weather</th></tr>';
+  const getRow = ((row)=>{
+    return `\t\t\t<tr><td>${row.hours}:00:00</td><td>${row.temp} 'C</td><td><img src='./SmartSymbol/light/${row.symbol}.svg'/></td></tr>\n`
+  })
+  const pageEdn = '\t\t</table>\n\t</body>\n</html>'
