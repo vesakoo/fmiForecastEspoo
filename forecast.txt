@@ -1,4 +1,4 @@
- 12| 18| 21| 08|
-  0| -1| -2| -3|
+ 08| 12| 18| 21|
+ -2| -3| -3| -5|
 Ulko: 0'C
-ajoittain heikkoja lumikuuroja
+enimmäkseen pilvistä

@@ -72,8 +72,8 @@ axios.request(urlParams)
       )[0].text().trim(); 
       //console.log('begin', new Date(begin),'end',new Date(end))
 
-//*data model
-      const measures = xmlDoc
+//data model
+      /*const measures = xmlDoc
         .find(
           '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-Temperature"]/wml2:point/wml2:MeasurementTVP',
           {
@@ -93,7 +93,7 @@ axios.request(urlParams)
             //console.log('time:',time,'temp',val);
             return {'time': time, 'hours': new Date(time).getHours(), 'temp':Math.round(val)}
         } ).filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours) ) )
-     
+      */
       const smartText = xmlDoc.find(
         '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-smartsymboltext"]/wml2:point/wml2:MeasurementTVP/wml2:value',
         {
@@ -102,85 +102,31 @@ axios.request(urlParams)
         }
       )[0].text()
 
-      const smartIcon = xmlDoc
-        .find(
-          '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-smartsymbol"]/wml2:point/wml2:MeasurementTVP',
+      const measures = timeValParser(xmlDoc,'mts-1-1-Temperature','')
+        .map(item =>(
           {
-            wml2: 'http://www.opengis.net/waterml/2.0',
-            gml: 'http://www.opengis.net/gml/3.2'
+            ...item,
+            'temp': Math.round(item.val)
           }
-        )
-        .map((element)=>{
-          const time = element.find(
-            './wml2:time'
-            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
-          )[0].text()
-          const val = element.find(
-            './wml2:value'
-            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
-            )[0].text()
-            //symbols 107 and 157 are missing (night symbols)
-            //replace with daysymbols
-            return {
-              'time': time, 
-              'hours': new Date(time).getHours(), 
-              'symbol': Number(val)===107||Number(val)===157?Number(val)-100:val
-            }
-        } )
-        .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)) )
+        )) 
 
-        const windMeasures = xmlDoc
-        .find(
-          '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-windspeedms"]/wml2:point/wml2:MeasurementTVP',
+      //symbols 107 and 157 are missing (night symbols)
+      //replace with daysymbols
+      const smartIcon = timeValParser(xmlDoc,'mts-1-1-smartsymbol','')
+        .map(item =>(
           {
-            wml2: 'http://www.opengis.net/waterml/2.0',
-            gml: 'http://www.opengis.net/gml/3.2'
+            ...item,
+            'symbol': Number(item.val)===107||Number(item.val)===157?Number(item.val)-100:item.val
           }
-        )
-        .map((element)=>{
-          const time = element.find(
-            './wml2:time'
-            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
-          )[0].text()
-          const val = element.find(
-            './wml2:value'
-            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
-            )[0].text()
-            //symbols 107 and 157 are missing (night symbols)
-            //replace with daysymbols
-            return {
-              'time': time, 
-              'hours': new Date(time).getHours(), 
-              'wind': val
-            }
-        } )
-        .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)))
+        )) 
 
-        const windDirVals = xmlDoc
-        .find(
-          '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-WindDirection"]/wml2:point/wml2:MeasurementTVP',
-          {
-            wml2: 'http://www.opengis.net/waterml/2.0',
-            gml: 'http://www.opengis.net/gml/3.2'
-          }
-        )
-        .map((element)=>{
-          const time = element.find(
-            './wml2:time'
-            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
-          )[0].text()
-          const val = element.find(
-            './wml2:value'
-            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
-            )[0].text()
-            return {
-              'time': time, 
-              'hours': new Date(time).getHours(), 
-              'windDirection': val
-            }
-        } )
-        .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)))
+        const windMeasures =timeValParser(xmlDoc,'mts-1-1-windspeedms','')
+        .map(item =>({...item, 'wind': item.val}))
 
+        const windDirVals =timeValParser(xmlDoc,'mts-1-1-WindDirection','')
+        .map(item =>({...item, 'windDir': item.val}))
+         
+        
         const allMeasures = measures.map((measure) => {
           const icon = smartIcon.find((ico)=> (ico.hours===measure.hours))
           const wind = windMeasures.find((wind) =>(wind.hours === measure.hours ))
@@ -193,13 +139,14 @@ console.log('data', allMeasures)
         
       
 
-//*data render
+//data render
       const fileContent = measures
+        .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)) )
         .filter((r,index)=>/*r.hours>7 && index <4*/ index>0)
         .map((row)=>row.hours>10?` ${row.hours}|`:` 0${row.hours}|`)
         .concat('\n')
-
         .concat(measures
+          .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)) )
           .filter((r,index)=>/*r.hours>7 && index <4*/ index >0)
           .map((row)=>(
             row.temp.toString().length<3
@@ -240,8 +187,49 @@ console.log('data', allMeasures)
 
 
 
-  const pageStart = '<html>\n\t<body>\n\t\t<table>\n<tr><th>Hour</th><th>temp</th><th>weather</th></tr>';
+  const pageStart = 
+    '<html>\n\t<body>\n\t\t<table>\n \
+    <tr><th>Hour</th><th>Temp</th><th>Wind m/s</th><th>weather</th></tr>';
   const getRow = ((row)=>{
-    return `\t\t\t<tr><td>${row.hours}:00:00</td><td>${row.temp} 'C</td><td><img src='./SmartSymbol/light/${row.symbol}.svg'/></td></tr>\n`
+    return `\t\t\t<tr>\
+      <td>${row.hours}:00:00</td> \
+      <td>${row.temp} 'C</td> \
+      <td>${row.wind} ${row.windDir}&deg; </td> \
+      <td><img src='./SmartSymbol/light/${row.symbol}.svg'/></td>\
+    </tr>\n`
   })
+
   const pageEdn = '\t\t</table>\n\t</body>\n</html>'
+
+
+  const timeValParser = ((xmlDoc, gmlId, valKey)=>{
+     return xmlDoc
+    .find(
+      `//wml2:MeasurementTimeseries[@gml:id="${gmlId}"]/wml2:point/wml2:MeasurementTVP`,
+      {
+        wml2: 'http://www.opengis.net/waterml/2.0',
+        gml: 'http://www.opengis.net/gml/3.2'
+      }
+    )
+    .map((element)=>{
+      const time = element.find(
+        './wml2:time'
+        ,{wml2: 'http://www.opengis.net/waterml/2.0'}
+      )[0].text()
+      const val = element.find(
+        './wml2:value'
+        ,{wml2: 'http://www.opengis.net/waterml/2.0'}
+        )[0].text()
+        //symbols 107 and 157 are missing (night symbols)
+        //replace with daysymbols
+        return {
+          'time': time, 
+          'hours': new Date(time).getHours(), 
+          'val' : val
+        }
+    } )
+    //.filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)) )
+
+
+
+  })
