@@ -4,6 +4,17 @@
  * output data is fitted to  16x2 (or 3) lcd panel.
  * two first datarows are temp forecast table
  * third datarow is closest current temperature
+ * <Parameter name="parameters" type="NameList">
+ * <Title>Parameters to return</Title>
+ * <Abstract> Comma separated list of meteorological parameters to return. 
+ * In addition to default parameters, there is 'RadiationDiffuseAccumulation' 
+ * parameter that is not distributed in grib2 format. Default: 
+ * GeopHeight,Temperature,Pressure,Humidity,WindUMS,WindVMS,MaximumWind, 
+ * WindGust,DewPoint,TotalCloudCover,LowCloudCover,MediumCloudCover,HighCloudCover, 
+ * Precipitation1h,PrecipitationAmount,RadiationGlobalAccumulation,RadiationLWAccumulation, 
+ * RadiationNetSurfaceLWAccumulation,RadiationNetSurfaceSWAccumulation,LandSeaMask, 
+ * WindSpeedMS,WindDirection,Cape </Abstract>
+ * </Parameter>
  */
 const axios = require('axios');
 const libxml = require('libxmljs');
@@ -31,7 +42,7 @@ const urlParams = {
     storedquery_id: 'fmi::forecast::edited::weather::scandinavia::point::timevaluepair', 
     //latlon : '60.1836468,24.6440379',
     place: 'Espoo',
-    parameters : 'Temperature,smartsymbol,smartsymboltext,windspeedms',
+    parameters : 'Temperature,smartsymbol,smartsymboltext,windspeedms,WindDirection',
     lang : 'fi',
     starttime : utc,
     endtime : endUtc,
@@ -81,8 +92,8 @@ axios.request(urlParams)
             )[0].text()
             //console.log('time:',time,'temp',val);
             return {'time': time, 'hours': new Date(time).getHours(), 'temp':Math.round(val)}
-        } ).filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)/*elem.hours===8||elem.hours===12||elem.hours===18||elem.hours===21*/) )
-      //console.log('measures',measures);
+        } ).filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours) ) )
+     
       const smartText = xmlDoc.find(
         '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-smartsymboltext"]/wml2:point/wml2:MeasurementTVP/wml2:value',
         {
@@ -116,13 +127,69 @@ axios.request(urlParams)
               'symbol': Number(val)===107||Number(val)===157?Number(val)-100:val
             }
         } )
+        .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)) )
+
+        const windMeasures = xmlDoc
+        .find(
+          '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-windspeedms"]/wml2:point/wml2:MeasurementTVP',
+          {
+            wml2: 'http://www.opengis.net/waterml/2.0',
+            gml: 'http://www.opengis.net/gml/3.2'
+          }
+        )
+        .map((element)=>{
+          const time = element.find(
+            './wml2:time'
+            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
+          )[0].text()
+          const val = element.find(
+            './wml2:value'
+            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
+            )[0].text()
+            //symbols 107 and 157 are missing (night symbols)
+            //replace with daysymbols
+            return {
+              'time': time, 
+              'hours': new Date(time).getHours(), 
+              'wind': val
+            }
+        } )
+        .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)))
+
+        const windDirVals = xmlDoc
+        .find(
+          '//wml2:MeasurementTimeseries[@gml:id="mts-1-1-WindDirection"]/wml2:point/wml2:MeasurementTVP',
+          {
+            wml2: 'http://www.opengis.net/waterml/2.0',
+            gml: 'http://www.opengis.net/gml/3.2'
+          }
+        )
+        .map((element)=>{
+          const time = element.find(
+            './wml2:time'
+            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
+          )[0].text()
+          const val = element.find(
+            './wml2:value'
+            ,{wml2: 'http://www.opengis.net/waterml/2.0'}
+            )[0].text()
+            return {
+              'time': time, 
+              'hours': new Date(time).getHours(), 
+              'windDirection': val
+            }
+        } )
         .filter((elem,index)=> (index==0||forecastDisplayHours.includes(elem.hours)))
 
         const allMeasures = measures.map((measure) => {
           const icon = smartIcon.find((ico)=> (ico.hours===measure.hours))
-          return {...measure, symbol: icon.symbol }
+          const wind = windMeasures.find((wind) =>(wind.hours === measure.hours ))
+          const windDir = windDirVals.find((wind) =>(wind.hours === measure.hours ))
+
+          return {...measure, symbol: icon.symbol, wind: wind.wind, windDir: windDir.windDirection }
         })
 
+console.log('data', allMeasures)
         
       
 
