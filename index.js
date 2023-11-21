@@ -101,7 +101,9 @@ axios
         (item) => ({
           ...item,
           symbol:
-            Number(item.val) === 107 || Number(item.val) === 157
+            Number(item.val) === 107 
+            || Number(item.val) === 157
+            ||  Number(item.val) === 158
               ? Number(item.val) - 100
               : item.val,
         })
@@ -231,8 +233,6 @@ const timeValParser = (xmlDoc, gmlId) => {
       const val = element
         .find('./wml2:value', { wml2: 'http://www.opengis.net/waterml/2.0' })[0]
         .text();
-      //symbols 107 and 157 are missing (night symbols)
-      //replace with daysymbols
       return {
         time: time,
         hours: new Date(time).getHours(),
