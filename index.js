@@ -171,6 +171,11 @@ axios
       } catch (err) {
         console.error(err);
       }
+      try {
+        fs.writeFileSync('weather.json',JSON.stringify(allMeasures) , 'utf8');
+      } catch (err) {
+        console.error(err);
+      }
 
       const htmlFileContent = pageStart
         .concat(
