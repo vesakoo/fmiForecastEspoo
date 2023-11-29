@@ -28,6 +28,12 @@ Output data is stored in three different format:
  sudo timedatectl set-timezone Europe/Helsinki   
  timedatectl
  ```
+ ### example clients:
+ https://github.com/vesakoo/FmiWeatherStationESP32S3   
+ - uses json output
+
+ https://github.com/vesakoo/mkrThermoClient  
+ -uses lcd panel and txt output
 
  ### Check also:  
  https://www.ilmatieteenlaitos.fi/latauspalvelun-pikaohje
