@@ -103,7 +103,11 @@ axios
           symbol:
             Number(item.val) === 107 
             || Number(item.val) === 157
-            ||  Number(item.val) === 158
+            || Number(item.val) === 158
+            || Number(item.val) === 148
+            || Number(item.val) === 149
+            || Number(item.val) === 138
+            || Number(item.val) === 111
               ? Number(item.val) - 100
               : item.val,
         })
@@ -162,19 +166,28 @@ axios
                 : `${row.temp}|`
             )
         )
-
         .concat(`\nUlko: ${measures[0].temp}'C`)
         //.concat(`\n${smartTexts[0].val}`)
         .join('');
       console.log(fileContent);
-
       try {
         fs.writeFileSync(forecastFile, fileContent);
       } catch (err) {
         console.error(err);
       }
+      const jsonMes = {
+        name : "weather" ,
+        forecast: allMeasures.map((measure) =>
+          ( {
+            hours: measure.hours,
+            temp: measure.temp,
+            wind: Math.round(measure.wind),
+            windDir: Math.round(measure.windDir)
+          })
+         )
+      }
       try {
-        fs.writeFileSync('weather.json',JSON.stringify(allMeasures) , 'utf8');
+        fs.writeFileSync('weather.json',JSON.stringify(jsonMes) , 'utf8');
       } catch (err) {
         console.error(err);
       }
@@ -207,7 +220,7 @@ const getRow = (row) => {
   return `\t\t\t<tr>\
       <td>${row.hours}:00</td> \
       <td>${row.temp} &deg;C</td> \
-      <td>${Math.round(row.wind)} m/s ${windArrow(-1*row.windDir)} </td> \
+      <td>${windArrow(-1*row.windDir)} ${Math.round(row.wind)} m/s  </td> \
       <td><img src='./SmartSymbol/light/${row.symbol}.svg'/> ${row.smartText}</td>\
     </tr>\n`;
 };
